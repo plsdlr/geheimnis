@@ -103,6 +103,11 @@ async function main() {
     default: `./${collectionName.toLowerCase().replace(/\s+/g, '-')}-geheimnis`,
   });
 
+  const useCeremony = await confirm({
+    message: 'Use multi-party trusted setup? (skips single-party setup — run ceremony init after)',
+    default: false,
+  });
+
   const cfg: ProjectConfig = {
     ...params,
     name: collectionName,
@@ -165,32 +170,38 @@ async function main() {
   }
 
   // ── Step 4: Groth16 trusted setup ─────────────────────────────────────────
-  log.step(4, TOTAL_STEPS, 'Running Groth16 trusted setup (single-party)...');
-  log.warn('Single-party setup — trust assumption equivalent to contract ownership.');
+  if (useCeremony) {
+    log.step(4, TOTAL_STEPS, 'Skipping single-party setup (ceremony mode).');
+    log.info('Run the following when ready to start the ceremony:');
+    log.info(chalk.cyan(`  geheimnis ceremony init ${paths.root}`));
+  } else {
+    log.step(4, TOTAL_STEPS, 'Running Groth16 trusted setup (single-party)...');
+    log.warn('Single-party setup — trust assumption equivalent to contract ownership.');
 
-  for (const [label, circuitName] of [
-    ['Transfer', 'EcdhPoseidonTransfer'],
-    ['AddData',  'AddNewDataEncrypt'],
-  ] as const) {
-    const r1cs = r1csPath(paths.buildDir, circuitName);
-    const sp = ora({ indent: 4 }).start(`${label}: groth16 setup`);
-    try {
-      const setupPaths = await runSetup(r1cs, ptauPath, paths.buildDir, label);
-      sp.succeed(`${label} setup complete`);
-      log.info(`zkey:     ${setupPaths.zkeyFinal}`);
-      log.info(`vkey:     ${setupPaths.vkey}`);
-      log.info(`verifier: ${setupPaths.solidityVerifier}`);
+    for (const [label, circuitName] of [
+      ['Transfer', 'EcdhPoseidonTransfer'],
+      ['AddData',  'AddNewDataEncrypt'],
+    ] as const) {
+      const r1cs = r1csPath(paths.buildDir, circuitName);
+      const sp = ora({ indent: 4 }).start(`${label}: groth16 setup`);
+      try {
+        const setupPaths = await runSetup(r1cs, ptauPath, paths.buildDir, label);
+        sp.succeed(`${label} setup complete`);
+        log.info(`zkey:     ${setupPaths.zkeyFinal}`);
+        log.info(`vkey:     ${setupPaths.vkey}`);
+        log.info(`verifier: ${setupPaths.solidityVerifier}`);
 
-      // Move the generated verifier into the contracts/src dir
-      const { copyFile } = await import('fs/promises');
-      await copyFile(
-        setupPaths.solidityVerifier,
-        `${paths.contractsDir}/Groth16Verifier_${label}.sol`
-      );
-    } catch (err: any) {
-      sp.fail(`${label} setup failed`);
-      console.error(chalk.red(err.stderr ?? err.message));
-      process.exit(1);
+        // Move the generated verifier into the contracts/src dir
+        const { copyFile } = await import('fs/promises');
+        await copyFile(
+          setupPaths.solidityVerifier,
+          `${paths.contractsDir}/Groth16Verifier_${label}.sol`
+        );
+      } catch (err: any) {
+        sp.fail(`${label} setup failed`);
+        console.error(chalk.red(err.stderr ?? err.message));
+        process.exit(1);
+      }
     }
   }
 
@@ -257,7 +268,7 @@ ${chalk.bold('geheimnis ceremony')} — multi-party trusted setup
     const buildDir = path.join(projectDir, 'build');
     const ptauFile = await input({
       message: 'Path to .ptau file?',
-      default: `${process.env.HOME ?? '.'}/.geheimnis/ptau/powersOfTau28_hez_final_16.ptau`,
+      default: `${process.env.HOME ?? '.'}/.geheimnis/ptau/`,
     });
 
     const circuitNames = ['Transfer', 'AddData'];

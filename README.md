@@ -63,15 +63,27 @@ cargo install circom
 ## Install
 
 ```bash
-npm install -g geheimnis
-# or
-pnpm add -g geheimnis
+git clone https://github.com/your-org/geheimnis.git
+cd geheimnis
+pnpm install
 ```
 
-Or run directly without installing:
+Run from the project directory via pnpm:
 
 ```bash
-npx geheimnis
+pnpm geheimnis
+pnpm geheimnis ceremony init ./my-project
+pnpm geheimnis ceremony contribute ./my-project
+```
+
+Optionally, link it globally so you can run `geheimnis` from any directory without `pnpm`:
+
+```bash
+pnpm build
+pnpm link --global
+
+geheimnis
+geheimnis ceremony init ./my-project
 ```
 
 ---
@@ -157,39 +169,54 @@ No price, no supply cap, no trusted minter. Simpler deploy for curated collectio
 
 The default flow uses a single-party trusted setup — reasonable when you already trust the deployer as the contract owner. For higher trust requirements, Geheimnis includes a multi-party ceremony workflow.
 
-### Flow
-
-```
-Deployer           Contributors           Deployer
-    │                    │                    │
- ceremony init      contribute ×N        ceremony finalize
-    │                    │                    │
- _0000.zkey     _0001 → _0002 → …       beacon → final.zkey
-                                         → export verifiers
-                                         → snarkjs verify
-```
-
 The ceremony is secure as long as **at least one contributor** destroyed their toxic waste after contributing.
 
-### Commands
+### How to start one
+
+When running `geheimnis`, answer **yes** to the prompt:
+
+```
+Use multi-party trusted setup? (skips single-party setup — run ceremony init after)
+```
+
+This generates and compiles the circuits but skips step 4. You then run the ceremony commands to produce the final proving keys.
+
+### Full flow
 
 ```bash
-# 1. Deployer: initialise after circuits are compiled
-geheimnis ceremony init ./my-project
+# 1. Deployer: generate project with ceremony mode enabled
+geheimnis
+# → answer yes to multi-party prompt
 
-# 2. Each contributor (share the ceremony/ directory between them)
+# 2. Deployer: initialise the ceremony (creates _0000.zkey files)
+geheimnis ceremony init ./my-project
+# → enter path to the .ptau file downloaded in step 3 of generation
+
+# 3. Share the ceremony/ directory with each contributor (zip, file share, etc.)
+#    Each contributor runs:
 geheimnis ceremony contribute ./my-project
 # → enter your name and optional personal entropy
-# → prints contribution hash — record it and share with others
+# → prints a contribution hash — record it and share with the group
 
-# 3. Deployer: finalise and export verifiers
+# 4. Deployer: finalise once all contributors are done
 geheimnis ceremony finalize ./my-project
+# → applies a random beacon, exports verifier contracts, verifies the transcript
 
-# 4. Anyone: verify the full transcript at any time
+# 5. Anyone can audit the transcript at any time
 geheimnis ceremony verify ./my-project
 ```
 
 Each contribution combines the system CSPRNG with optional personal entropy via SHA-256 — neither source alone is sufficient.
+
+```
+Deployer           Contributors           Deployer
+    │                    │                    │
+geheimnis           contribute ×N        ceremony finalize
+ceremony init            │                    │
+    │           _0001 → _0002 → …       beacon → final.zkey
+ _0000.zkey                              → export verifiers
+                                         → snarkjs verify
+```
 
 ---
 
