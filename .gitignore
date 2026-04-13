@@ -1,0 +1,23 @@
+# Build output
+dist/
+
+# Dependencies
+node_modules/
+
+# TypeScript
+*.tsbuildinfo
+
+# Environment
+.env
+.env.*
+
+# ptau cache
+.geheimnis/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Internal / instructions
+task.md
+memory/
