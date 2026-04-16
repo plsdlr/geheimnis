@@ -3,11 +3,11 @@
 
 > *Geheimnis* (German) — secret, mystery.
 
-![demo](assets/demo.gif)
-
 A CLI template engine that generates a complete **ZK-encrypted ERC-721 stack** from a single parameter: how many plaintext fields you want to store per token.
 
 Run `geheimnis` once and get production-ready circom circuits, Groth16 verifier contracts, a Solidity ERC-721, and TypeScript bindings — all wired together and compiled.
+
+![demo](assets/demo.gif)
 
 ---
 ## Acknowledgment
