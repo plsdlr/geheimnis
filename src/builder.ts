@@ -34,10 +34,11 @@ export async function checkCircom(): Promise<void> {
 export async function compileCirucit(
   circuitPath: string,
   outputDir: string,
-  includesDir: string
+  includesDir: string,
+  onLine?: (line: string) => void,
 ): Promise<void> {
   const circomlibCircuits = path.resolve(__dirname, '..', 'node_modules', 'circomlib', 'circuits');
-  await execa('circom', [
+  const proc = execa('circom', [
     circuitPath,
     '--r1cs',
     '--wasm',
@@ -46,9 +47,25 @@ export async function compileCirucit(
     '-l', circomlibCircuits,
     '-l', includesDir,
   ]);
+
+  if (onLine) {
+    const pipe = (chunk: Buffer) => {
+      for (const line of chunk.toString().split('\n')) {
+        const t = line.trim();
+        if (t) onLine(t);
+      }
+    };
+    proc.stdout?.on('data', pipe);
+    proc.stderr?.on('data', pipe);
+  }
+
+  await proc;
 }
 
-export async function getPtau(power: number): Promise<string> {
+export async function getPtau(
+  power: number,
+  onProgress?: (received: number, total: number) => void,
+): Promise<string> {
   await mkdir(PTAU_CACHE, { recursive: true });
   const filename = `powersOfTau28_hez_final_${String(power).padStart(2, '0')}.ptau`;
   const dest = path.join(PTAU_CACHE, filename);
@@ -61,11 +78,15 @@ export async function getPtau(power: number): Promise<string> {
   }
 
   const url = ptauUrl(power);
-  await download(url, dest);
+  await download(url, dest, onProgress);
   return dest;
 }
 
-function download(url: string, dest: string): Promise<void> {
+function download(
+  url: string,
+  dest: string,
+  onProgress?: (received: number, total: number) => void,
+): Promise<void> {
   return new Promise((resolve, reject) => {
     const proto = url.startsWith('https') ? https : http;
     const file = createWriteStream(dest);
@@ -73,7 +94,7 @@ function download(url: string, dest: string): Promise<void> {
     proto.get(url, (res) => {
       if (res.statusCode === 301 || res.statusCode === 302) {
         file.close();
-        download(res.headers.location!, dest).then(resolve).catch(reject);
+        download(res.headers.location!, dest, onProgress).then(resolve).catch(reject);
         return;
       }
       if (res.statusCode !== 200) {
@@ -81,6 +102,12 @@ function download(url: string, dest: string): Promise<void> {
         reject(new Error(`Download failed: HTTP ${res.statusCode} — ${url}`));
         return;
       }
+      const total = parseInt(res.headers['content-length'] ?? '0', 10);
+      let received = 0;
+      res.on('data', (chunk: Buffer) => {
+        received += chunk.length;
+        if (onProgress && total > 0) onProgress(received, total);
+      });
       res.pipe(file);
       file.on('finish', () => file.close(() => resolve()));
     }).on('error', (err) => {
@@ -101,7 +128,8 @@ export async function runSetup(
   r1csPath: string,
   ptauPath: string,
   buildDir: string,
-  name: string
+  name: string,
+  onLine?: (line: string) => void,
 ): Promise<SetupPaths> {
   await mkdir(buildDir, { recursive: true });
 
@@ -110,19 +138,34 @@ export async function runSetup(
   const vkey = path.join(buildDir, `${name}_vkey.json`);
   const solidityVerifier = path.join(buildDir, `Groth16Verifier_${name}.sol`);
 
+  const run = async (args: string[]) => {
+    const proc = execa(SNARKJS_BIN, args);
+    if (onLine) {
+      const pipe = (chunk: Buffer) => {
+        for (const line of chunk.toString().split('\n')) {
+          const t = line.trim();
+          if (t) onLine(t);
+        }
+      };
+      proc.stdout?.on('data', pipe);
+      proc.stderr?.on('data', pipe);
+    }
+    await proc;
+  };
+
   // Phase 2 init
-  await execa(SNARKJS_BIN, ['groth16', 'setup', r1csPath, ptauPath, zkey0]);
+  await run(['groth16', 'setup', r1csPath, ptauPath, zkey0]);
 
   // Random beacon — 32 bytes from the OS CSPRNG (crypto.randomBytes delegates to
   // getrandom(2) on Linux / BCryptGenRandom on Windows). Unique per run.
   const beaconHash = randomBytes(32).toString('hex');
-  await execa(SNARKJS_BIN, ['zkey', 'beacon', zkey0, zkeyFinal, beaconHash, '10']);
+  await run(['zkey', 'beacon', zkey0, zkeyFinal, beaconHash, '10']);
 
   // Export verification key
-  await execa(SNARKJS_BIN, ['zkey', 'export', 'verificationkey', zkeyFinal, vkey]);
+  await run(['zkey', 'export', 'verificationkey', zkeyFinal, vkey]);
 
   // Export Solidity verifier
-  await execa(SNARKJS_BIN, ['zkey', 'export', 'solidityverifier', zkeyFinal, solidityVerifier]);
+  await run(['zkey', 'export', 'solidityverifier', zkeyFinal, solidityVerifier]);
 
   return { zkey0, zkeyFinal, vkey, solidityVerifier };
 }

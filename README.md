@@ -1,5 +1,11 @@
 # Geheimnis
 
+```
+░█▀▀░█▀▀░█░█░█▀▀░▀█▀░█▄█░█▀█░▀█▀░█▀▀
+░█░█░█▀▀░█▀█░█▀▀░░█░░█░█░█░█░░█░░▀▀█
+░▀▀▀░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀░▀░▀░▀░▀▀▀░▀▀▀
+```
+
 > *Geheimnis* (German) — secret, mystery.
 
 A CLI template engine that generates a complete **ZK-encrypted ERC-721 stack** from a single parameter: how many plaintext fields you want to store per token.
