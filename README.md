@@ -1,12 +1,9 @@
 # Geheimnis
 
-```
-░█▀▀░█▀▀░█░█░█▀▀░▀█▀░█▄█░█▀█░▀█▀░█▀▀
-░█░█░█▀▀░█▀█░█▀▀░░█░░█░█░█░█░░█░░▀▀█
-░▀▀▀░▀▀▀░▀░▀░▀▀▀░▀▀▀░▀░▀░▀░▀░▀▀▀░▀▀▀
-```
 
 > *Geheimnis* (German) — secret, mystery.
+
+![demo](assets/demo.gif)
 
 A CLI template engine that generates a complete **ZK-encrypted ERC-721 stack** from a single parameter: how many plaintext fields you want to store per token.
 
@@ -287,7 +284,7 @@ The circuits include `circomlib` primitives (`babyjub.circom`, `bitify.circom`, 
 
 ## EIP
 
-This project implements [EIP-XXXX: ZK-Encrypted ERC-721 with On-Chain Encrypted Metadata](./EIP-XXXX.md).
+This project implements [EIP-XXXX: ZK-Encrypted ERC-721 with On-Chain Encrypted Metadata](./assets/EIP-XXXX.md).
 
 ---
 
