@@ -7,6 +7,10 @@ A CLI template engine that generates a complete **ZK-encrypted ERC-721 stack** f
 Run `geheimnis` once and get production-ready circom circuits, Groth16 verifier contracts, a Solidity ERC-721, and TypeScript bindings — all wired together and compiled.
 
 ---
+## Acknowledgment
+
+This template engine was developed as part of cipher, which was supported by [JUST Open Source](https://www.justopensource.io/). The circom circuits rely on the [ZK-Kit](https://github.com/zk-kit) developed by the [Privacy Stewards of Ethereum (PSE)](https://pse.dev/).
+
 
 ## What it generates
 
@@ -98,15 +102,15 @@ geheimnis
 
 The CLI will ask:
 
-| Prompt | Description |
-|--------|-------------|
-| **N** | Plaintext field elements per token. Determines circuit size and storage layout. |
-| **Collection name** | Used for the contract name and output directory. |
-| **Symbol** | ERC-721 token symbol. |
-| **Include minting?** | Whether to add public mint logic (price, max supply, trusted minter). |
-| **Max supply** | *(if minting enabled)* Maximum tokens that can be minted. |
-| **Mint price** | *(if minting enabled)* Price in ETH per mint. |
-| **Output directory** | Where to write the generated project. |
+| Prompt               | Description                                                                     |
+| -------------------- | ------------------------------------------------------------------------------- |
+| **N**                | Plaintext field elements per token. Determines circuit size and storage layout. |
+| **Collection name**  | Used for the contract name and output directory.                                |
+| **Symbol**           | ERC-721 token symbol.                                                           |
+| **Include minting?** | Whether to add public mint logic (price, max supply, trusted minter).           |
+| **Max supply**       | *(if minting enabled)* Maximum tokens that can be minted.                       |
+| **Mint price**       | *(if minting enabled)* Price in ETH per mint.                                   |
+| **Output directory** | Where to write the generated project.                                           |
 
 Geheimnis then:
 1. Writes all source files
@@ -130,11 +134,11 @@ Copy `build/*.zkey` and `circuits/*.wasm` to your front-end for client-side prov
 
 ## Choosing N
 
-| N | ptau | Proving | Notes |
-|---|------|---------|-------|
-| 1–15 | 2^15 | Browser-safe (~5–10s in a web worker) | Recommended for most use cases |
-| 16–30 | 2^16 | Server-side recommended | Still reasonable calldata |
-| > 30 | 2^17+ | Slow, large wasm | Not recommended |
+| N     | ptau  | Proving                               | Notes                          |
+| ----- | ----- | ------------------------------------- | ------------------------------ |
+| 1–15  | 2^15  | Browser-safe (~5–10s in a web worker) | Recommended for most use cases |
+| 16–30 | 2^16  | Server-side recommended               | Still reasonable calldata      |
+| > 30  | 2^17+ | Slow, large wasm                      | Not recommended                |
 
 The soft limit is **N = 30**. At N = 30 the total calldata per transaction is roughly 2.5 KB (256 bytes fixed proof + ~2.2 KB public signals), well within RPC limits.
 
